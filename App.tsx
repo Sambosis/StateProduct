@@ -7,6 +7,26 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 
 const STORAGE_KEY = 'state_chemical_catalog_v2';
 
+// Helper component for highlighting text matches
+const HighlightText: React.FC<{ text: string; term: string }> = ({ text, term }) => {
+  if (!term.trim()) return <span>{text}</span>;
+  const safeTerm = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const parts = text.split(new RegExp(`(${safeTerm})`, 'gi'));
+  return (
+    <span>
+      {parts.map((part, i) => 
+        part.toLowerCase() === term.toLowerCase() ? (
+          <mark key={i} className="bg-yellow-200 text-slate-900 rounded-sm px-0.5 no-underline">
+            {part}
+          </mark>
+        ) : (
+          part
+        )
+      )}
+    </span>
+  );
+};
+
 const App: React.FC = () => {
   // Initialize state from localStorage only.
   const [csvData, setCsvData] = useState<string | null>(() => {
@@ -90,9 +110,6 @@ const App: React.FC = () => {
     }
   };
 
-  // ---------------------------------------------------------------------------
-  // Landing Page (No Data State)
-  // ---------------------------------------------------------------------------
   if (!csvData) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
@@ -103,17 +120,14 @@ const App: React.FC = () => {
           className="hidden" 
           accept=".csv"
         />
-        
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 md:p-12 text-center border border-slate-200">
           <div className="bg-indigo-600 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-8 shadow-lg shadow-indigo-200">
             <Package className="w-10 h-10 text-white" />
           </div>
-          
           <h1 className="text-3xl font-extrabold text-slate-900 mb-4">State Chemical Catalog</h1>
           <p className="text-slate-500 mb-10 leading-relaxed">
             Please upload your product catalog CSV file to begin. The data will be stored locally in your browser.
           </p>
-
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="w-full flex items-center justify-center space-x-3 bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-xl font-bold text-lg transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-indigo-200"
@@ -122,7 +136,6 @@ const App: React.FC = () => {
             <span>Upload Catalog CSV</span>
           </button>
         </div>
-        
         <p className="mt-8 text-xs text-slate-400 font-medium uppercase tracking-widest">
           Secure Local Browser Storage
         </p>
@@ -130,9 +143,6 @@ const App: React.FC = () => {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Main App Interface
-  // ---------------------------------------------------------------------------
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <input 
@@ -221,7 +231,7 @@ const App: React.FC = () => {
                     <ChevronRight className={`w-4 h-4 transition-transform ${selectedGroup?.parentName === group.parentName ? 'text-indigo-500 translate-x-1' : 'text-slate-300'}`} />
                   </div>
                   <h3 className={`text-sm font-bold leading-tight ${selectedGroup?.parentName === group.parentName ? 'text-indigo-600' : 'text-slate-700'}`}>
-                    {group.parentName}
+                    <HighlightText text={group.parentName} term={searchTerm} />
                   </h3>
                   <div className="mt-3 flex items-center text-[11px] text-slate-400 font-semibold">
                     <Box className="w-3 h-3 mr-1.5 opacity-50" />
@@ -252,7 +262,9 @@ const App: React.FC = () => {
                     <Tag className="w-4 h-4" />
                     <span className="text-sm font-bold uppercase tracking-wider">{selectedGroup.family}</span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">{selectedGroup.parentName}</h2>
+                  <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight leading-tight">
+                    <HighlightText text={selectedGroup.parentName} term={searchTerm} />
+                  </h2>
                   
                   {/* Variant Selector */}
                   <div className="mt-8">
@@ -278,13 +290,15 @@ const App: React.FC = () => {
                                  {v.unit}
                                </p>
                                <p className={`text-sm font-bold leading-snug mt-1 ${selectedVariantIdx === i ? 'text-white' : 'text-slate-800'}`}>
-                                 {v.description}
+                                 <HighlightText text={v.description} term={searchTerm} />
                                </p>
                              </div>
                           </div>
                           
                           <div className={`mt-3 pt-3 border-t ${selectedVariantIdx === i ? 'border-white/20' : 'border-slate-100'} flex items-center justify-between font-mono text-xs relative z-10`}>
-                             <span className={selectedVariantIdx === i ? 'text-indigo-200' : 'text-slate-400'}>SKU: {v.sku}</span>
+                             <span className={selectedVariantIdx === i ? 'text-indigo-200' : 'text-slate-400'}>
+                               SKU: <HighlightText text={v.sku} term={searchTerm} />
+                             </span>
                              {selectedVariantIdx === i && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
                           </div>
                         </button>
@@ -296,7 +310,6 @@ const App: React.FC = () => {
 
               {/* Stats & Pricing */}
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {/* Pricing Grid */}
                 <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm">
                   <div className="flex items-center justify-between mb-8">
                      <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest flex items-center">
@@ -305,7 +318,7 @@ const App: React.FC = () => {
                       </h3>
                       {activeVariant && (
                          <span className="text-xs font-medium text-slate-400 font-mono">
-                           {activeVariant.sku} • {activeVariant.unit}
+                           <HighlightText text={activeVariant.sku} term={searchTerm} /> • {activeVariant.unit}
                          </span>
                       )}
                   </div>
@@ -329,7 +342,9 @@ const App: React.FC = () => {
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Quick Copy</p>
                         <div className="flex items-center group cursor-pointer bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50 transition-all" onClick={() => copySku(activeVariant?.sku || '')}>
-                          <p className="text-sm font-mono font-bold text-slate-700">{activeVariant?.sku}</p>
+                          <p className="text-sm font-mono font-bold text-slate-700">
+                            <HighlightText text={activeVariant?.sku || ''} term={searchTerm} />
+                          </p>
                           {copiedSku === activeVariant?.sku ? (
                             <CheckCircle2 className="w-3.5 h-3.5 ml-2 text-emerald-500" />
                           ) : (
@@ -345,7 +360,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Chart */}
                 <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm flex flex-col">
                   <h3 className="text-sm font-black text-slate-400 uppercase tracking-widest mb-8">Spread Analysis</h3>
                   <div className="flex-1 min-h-[300px]">
